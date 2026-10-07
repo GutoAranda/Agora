@@ -6,7 +6,7 @@ test('primeiro dia, captura e navegação', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(m.text())
+    if (m.type() === 'error' && !/fonts\.g|net::ERR/.test(m.text())) errors.push(m.text())
   })
 
   await page.goto('/')

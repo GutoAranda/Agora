@@ -13,7 +13,7 @@ import { confirmAsk } from './shared'
    Sheet de disciplina: dados básicos + horários semanais (regras recorrentes).
    ========================================================================== */
 
-export async function deleteCourseCascade(courseId: number): Promise<void> {
+export async function deleteCourseCascade(courseId: string): Promise<void> {
   const rules = await db.recurring.where('courseId').equals(courseId).toArray()
   const today = todayKey()
   for (const r of rules) {
@@ -49,7 +49,7 @@ export function CourseSheet({ open, course, onClose }: { open: boolean; course: 
 
   const valid = name.trim().length > 0 && absenceLimit >= 0
 
-  async function save(): Promise<number | undefined> {
+  async function save(): Promise<string | undefined> {
     if (!valid || saving) return
     setSaving(true)
     try {
@@ -63,7 +63,7 @@ export function CourseSheet({ open, course, onClose }: { open: boolean; course: 
         semesterEnd: semesterEnd || undefined,
         notes: notes.trim() || undefined,
       }
-      const id = (await db.courses.put(data)) as number
+      const id = (await db.courses.put(data)) as string
       // Mantém os títulos das aulas alinhados com o nome da disciplina.
       if (course?.id && course.name !== data.name) {
         const rs = await db.recurring.where('courseId').equals(course.id).toArray()
@@ -77,7 +77,7 @@ export function CourseSheet({ open, course, onClose }: { open: boolean; course: 
 
   async function saveRule(r: Recurring) {
     const editing = !!r.id
-    const id = (await db.recurring.put(r)) as number
+    const id = (await db.recurring.put(r)) as string
     if (editing) await dropFutureFromRecurring(id, todayKey())
     await materializeAround(new Date(), settings)
     await materializeAround(addDays(new Date(), 7), settings)

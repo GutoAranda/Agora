@@ -16,7 +16,7 @@ export function ProvasBanner({ deadlines, courses }: { deadlines: Deadline[]; co
     })
     .sort((a, b) => a.dueAt.localeCompare(b.dueAt))
   if (!provas.length) return null
-  const courseName = (id?: number) => courses.find((c) => c.id === id)?.name
+  const courseName = (id?: string) => courses.find((c) => c.id === id)?.name
 
   return (
     <div className="mb-5 rounded-2xl border border-accent/30 bg-accent/10 p-3">

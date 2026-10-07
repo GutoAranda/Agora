@@ -19,13 +19,15 @@ import VidaPage from './pages/Vida'
 import RevisaoPage from './pages/Revisao'
 import ConfigPage from './pages/Config'
 import Onboarding from './pages/Onboarding'
+import ContaPage from './pages/Conta'
+import { startSync } from './lib/sync'
 
 function Shell() {
   const settings = useUI((s) => s.settings)
   const setSettings = useUI((s) => s.setSettings)
   const tick = useUI((s) => s.tick)
   const location = useLocation()
-  const live = useLiveQuery(() => db.settings.get(1))
+  const live = useLiveQuery(() => db.settings.get('1'))
   const inboxCount = useLiveQuery(() => db.tasks.where('status').equals('entrada').count(), [], 0)
 
   // Carrega configurações e materializa a semana atual + próxima.
@@ -66,6 +68,15 @@ function Shell() {
     window.scrollTo({ top: 0 })
   }, [location.pathname])
 
+  // Sincronização com a nuvem (se configurada).
+  useEffect(() => {
+    let stop: (() => void) | null = null
+    void startSync().then((s) => {
+      stop = s
+    })
+    return () => stop?.()
+  }, [])
+
   if (!settings.onboardingDone) return <Onboarding />
 
   return (
@@ -81,6 +92,7 @@ function Shell() {
           <Route path="/areas/vida" element={<VidaPage />} />
           <Route path="/revisao" element={<RevisaoPage />} />
           <Route path="/config" element={<ConfigPage />} />
+          <Route path="/conta" element={<ContaPage />} />
           <Route path="*" element={<AgoraPage />} />
         </Routes>
       </main>

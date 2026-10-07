@@ -46,7 +46,7 @@ export default function Onboarding() {
   const courses = useLiveQuery(() => db.courses.toArray(), [])
   // Passo 4
   const [work, setWork] = useState<WorkDraft>({ weekdays: [1, 2, 3, 4, 5], start: '09:00', end: '15:00', location: '', travelMin: 30 })
-  const [workRuleId, setWorkRuleId] = useState<number | null>(null)
+  const [workRuleId, setWorkRuleId] = useState<string | null>(null)
   // Passo 5
   const [morning, setMorning] = useState(true)
   const [night, setNight] = useState(true)
@@ -97,7 +97,7 @@ export default function Onboarding() {
         active: true,
       }
       if (workRuleId) await db.recurring.put({ ...rule, id: workRuleId })
-      else setWorkRuleId((await db.recurring.add(rule)) as number)
+      else setWorkRuleId((await db.recurring.add(rule)) as string)
     }
     next()
   })
@@ -390,7 +390,7 @@ export default function Onboarding() {
 }
 
 /** Linha "seg, qua · 19:00–20:40" de uma disciplina (a partir da regra recorrente). */
-function CourseRuleLine({ courseId }: { courseId: number }) {
+function CourseRuleLine({ courseId }: { courseId: string }) {
   const rule = useLiveQuery(() => db.recurring.where('courseId').equals(courseId).first(), [courseId])
   if (!rule) return <p className="text-xs text-muted">Sem horário</p>
   return (

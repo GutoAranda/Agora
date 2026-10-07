@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
+import { uuid } from '../lib/uuid'
 
 /* ==========================================================================
    Modelo de dados do Agora.
@@ -29,7 +30,7 @@ export type BlockKind =
 export type BlockStatus = 'planejado' | 'iniciado' | 'feito' | 'pulado'
 
 export interface Block {
-  id?: number
+  id?: string
   title: string
   area: Area
   kind: BlockKind
@@ -39,11 +40,11 @@ export interface Block {
   firstStep?: string
   location?: string
   notes?: string
-  taskId?: number
-  recurringId?: number
-  courseId?: number
-  deadlineId?: number
-  routineId?: number
+  taskId?: string
+  recurringId?: string
+  courseId?: string
+  deadlineId?: string
+  routineId?: string
   startedAt?: string
   doneAt?: string
   /** 'yyyy-MM-dd' do dia a que o bloco pertence (facilita consultas) */
@@ -65,7 +66,7 @@ export interface Subtask {
 }
 
 export interface Task {
-  id?: number
+  id?: string
   title: string
   area?: Area
   status: TaskStatus
@@ -73,8 +74,8 @@ export interface Task {
   firstStep?: string
   estimateMin?: number
   dueAt?: string // ISO
-  courseId?: number
-  deadlineId?: number
+  courseId?: string
+  deadlineId?: string
   subtasks: Subtask[]
   notes?: string
   createdAt: string
@@ -85,7 +86,7 @@ export interface Task {
 
 /** Regra recorrente semanal (aula, estágio, treino). Gera blocos 'fixo'. */
 export interface Recurring {
-  id?: number
+  id?: string
   title: string
   area: Area
   kind: BlockKind
@@ -95,7 +96,7 @@ export interface Recurring {
   location?: string
   /** Minutos de deslocamento antes e depois (gera blocos 'deslocamento'). */
   travelMin?: number
-  courseId?: number
+  courseId?: string
   active: boolean
   /** Intervalo de vigência opcional ('yyyy-MM-dd'). */
   from?: string
@@ -103,7 +104,7 @@ export interface Recurring {
 }
 
 export interface Course {
-  id?: number
+  id?: string
   name: string
   code?: string
   professor?: string
@@ -115,8 +116,8 @@ export interface Course {
 }
 
 export interface Absence {
-  id?: number
-  courseId: number
+  id?: string
+  courseId: string
   date: string // 'yyyy-MM-dd'
   note?: string
 }
@@ -133,11 +134,11 @@ export interface Milestone {
 
 /** Prazo com marcos intermediários (trabalho da faculdade, prova, entrega do estágio). */
 export interface Deadline {
-  id?: number
+  id?: string
   title: string
   area: Area
   type: DeadlineType
-  courseId?: number
+  courseId?: string
   dueAt: string // ISO
   estimateMin: number
   milestones: Milestone[]
@@ -147,8 +148,8 @@ export interface Deadline {
 }
 
 export interface Reading {
-  id?: number
-  courseId: number
+  id?: string
+  courseId: string
   title: string
   pages: number
   pagesDone: number
@@ -162,7 +163,7 @@ export interface RoutineStep {
 }
 
 export interface Routine {
-  id?: number
+  id?: string
   name: string
   period: 'manha' | 'noite' | 'outro'
   anchorTime: string // 'HH:mm' em que a rotina começa
@@ -172,15 +173,15 @@ export interface Routine {
 }
 
 export interface Habit {
-  id?: number
+  id?: string
   name: string
   targetPerWeek: number
   active: boolean
 }
 
 export interface HabitLog {
-  id?: number
-  habitId: number
+  id?: string
+  habitId: string
   date: string // 'yyyy-MM-dd'
 }
 
@@ -188,7 +189,7 @@ export type ReminderRepeat = 'uma' | 'mensal' | 'anual'
 
 /** Aniversários, contas, consultas: lembrete N dias antes e no dia. */
 export interface Reminder {
-  id?: number
+  id?: string
   title: string
   area: Area
   date: string // 'yyyy-MM-dd' (primeira ocorrência)
@@ -200,7 +201,7 @@ export interface Reminder {
 }
 
 export interface Review {
-  id?: number
+  id?: string
   date: string // 'yyyy-MM-dd'
   type: 'noite' | 'domingo'
   answers: Record<string, string>
@@ -209,7 +210,7 @@ export interface Review {
 
 /** Fechamento do expediente: o que ficou pendente e o primeiro passo de amanhã. */
 export interface WorkClose {
-  id?: number
+  id?: string
   date: string // 'yyyy-MM-dd'
   pending: string
   firstStepTomorrow: string
@@ -217,7 +218,7 @@ export interface WorkClose {
 
 /** Item na lista de espera do trabalho (ideias, "quando der tempo"). */
 export interface ParkedIdea {
-  id?: number
+  id?: string
   title: string
   area: Area
   notes?: string
@@ -230,7 +231,7 @@ export interface SleepWindow {
 }
 
 export interface Settings {
-  id: number // sempre 1
+  id: string // sempre 1
   name: string
   sleepWeekday: SleepWindow
   sleepWeekend: SleepWindow
@@ -249,7 +250,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  id: 1,
+  id: '1',
   name: '',
   sleepWeekday: { bed: '01:30', wake: '08:00' },
   sleepWeekend: { bed: '02:00', wake: '09:00' },
@@ -319,20 +320,20 @@ class AgoraDB extends Dexie {
     super('agora')
     this.version(1).stores({
       settings: 'id',
-      blocks: '++id, day, start, status, kind, area, taskId, recurringId, courseId, deadlineId, routineId',
-      tasks: '++id, status, area, dueAt, courseId, deadlineId, createdAt',
-      recurring: '++id, area, courseId, active',
-      courses: '++id, name',
-      absences: '++id, courseId, date',
-      deadlines: '++id, area, courseId, dueAt, done',
-      readings: '++id, courseId, done',
-      routines: '++id, period, active',
-      habits: '++id, active',
-      habitLogs: '++id, habitId, date, [habitId+date]',
-      reminders: '++id, area, date',
-      reviews: '++id, date, type',
-      workCloses: '++id, date',
-      parked: '++id, area, createdAt',
+      blocks: 'id, day, start, status, kind, area, taskId, recurringId, courseId, deadlineId, routineId',
+      tasks: 'id, status, area, dueAt, courseId, deadlineId, createdAt',
+      recurring: 'id, area, courseId, active',
+      courses: 'id, name',
+      absences: 'id, courseId, date',
+      deadlines: 'id, area, courseId, dueAt, done',
+      readings: 'id, courseId, done',
+      routines: 'id, period, active',
+      habits: 'id, active',
+      habitLogs: 'id, habitId, date, [habitId+date]',
+      reminders: 'id, area, date',
+      reviews: 'id, date, type',
+      workCloses: 'id, date',
+      parked: 'id, area, createdAt',
       tombstones: 'id, tbl',
       syncMeta: 'key',
     })
@@ -341,9 +342,54 @@ class AgoraDB extends Dexie {
 
 export const db = new AgoraDB()
 
+/* ==========================================================================
+   Hooks de sincronização.
+   - creating: garante id universal e updatedAt.
+   - updating: atualiza updatedAt.
+   - deleting: grava uma lápide (para o servidor apagar também).
+   Enquanto dados do servidor estão sendo aplicados, os hooks ficam quietos.
+   ========================================================================== */
+
+let remoteApplying = false
+let changeListener: (() => void) | null = null
+
+export function setRemoteApplying(v: boolean): void {
+  remoteApplying = v
+}
+
+export function setChangeListener(fn: (() => void) | null): void {
+  changeListener = fn
+}
+
+function noteChange(): void {
+  if (!remoteApplying && changeListener) changeListener()
+}
+
+for (const name of SYNCED_TABLES) {
+  const table = db.table(name)
+  table.hook('creating', function (_primKey, obj) {
+    const o = obj as { id?: string; updatedAt?: string }
+    if (!o.id) o.id = uuid()
+    if (!remoteApplying || !o.updatedAt) o.updatedAt = new Date().toISOString()
+    this.onsuccess = () => noteChange()
+    return o.id
+  })
+  table.hook('updating', function (mods) {
+    if (remoteApplying) return undefined
+    this.onsuccess = () => noteChange()
+    return { ...(mods as Record<string, unknown>), updatedAt: new Date().toISOString() }
+  })
+  table.hook('deleting', function (primKey) {
+    if (remoteApplying) return
+    const id = String(primKey)
+    void Dexie.ignoreTransaction(() => db.tombstones.put({ id, tbl: name, at: new Date().toISOString() }))
+    this.onsuccess = () => noteChange()
+  })
+}
+
 /** Garante que a linha de configurações existe e a devolve. */
 export async function ensureSettings(): Promise<Settings> {
-  const s = await db.settings.get(1)
+  const s = await db.settings.get('1')
   if (s) return s
   await db.settings.put(DEFAULT_SETTINGS)
   return DEFAULT_SETTINGS
@@ -351,7 +397,7 @@ export async function ensureSettings(): Promise<Settings> {
 
 export async function updateSettings(patch: Partial<Settings>): Promise<void> {
   const s = await ensureSettings()
-  await db.settings.put({ ...s, ...patch, id: 1 })
+  await db.settings.put({ ...s, ...patch, id: '1' })
 }
 
 /** Exporta tudo em JSON (backup). */

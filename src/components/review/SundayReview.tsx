@@ -77,7 +77,7 @@ function SundaySteps({ onClose }: { onClose: () => void }) {
     }
   }
 
-  async function placeOne(t: Task): Promise<number | null> {
+  async function placeOne(t: Task): Promise<string | null> {
     if (t.trigger?.type === 'horario') {
       const start = parseISO(t.trigger.value)
       if (start.getTime() > Date.now()) return placeTaskAt(t, start, t.estimateMin ?? 30)

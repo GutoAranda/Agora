@@ -15,7 +15,7 @@ export interface RecurringFormProps {
   fixedArea?: Area
   /** Trava o tipo de bloco (esconde o seletor). */
   fixedKind?: BlockKind
-  courseId?: number
+  courseId?: string
 }
 
 const KIND_OPTIONS: { value: BlockKind; label: string }[] = [

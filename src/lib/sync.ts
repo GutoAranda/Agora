@@ -1,5 +1,5 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import { db, SYNCED_TABLES, type SyncMeta } from '../db/schema'
+import { db, SYNCED_TABLES, setChangeListener, setRemoteApplying, type SyncMeta } from '../db/schema'
 import { supabase } from './supabase'
 
 /* ==========================================================================
@@ -20,8 +20,6 @@ let channel: RealtimeChannel | null = null
 let pulling = false
 let timer: number | null = null
 
-/** Enquanto aplicamos dados do servidor, os hooks locais não devem reenfileirar. */
-export let applyingRemote = false
 
 function setState(s: SyncState, d = '') {
   state = s
@@ -92,7 +90,7 @@ export async function pull(): Promise<number> {
     if (error) throw new Error(error.message)
     const rows = (data ?? []) as RemoteRow[]
     if (!rows.length) break
-    applyingRemote = true
+    setRemoteApplying(true)
     try {
       await db.transaction('rw', [...SYNCED_TABLES.map((t) => db.table(t)), db.tombstones], async () => {
         for (const r of rows) {
@@ -108,7 +106,7 @@ export async function pull(): Promise<number> {
         }
       })
     } finally {
-      applyingRemote = false
+      setRemoteApplying(false)
     }
     newest = rows[rows.length - 1].updated_at
     since = newest
@@ -146,7 +144,7 @@ function scheduleSync(delayMs = 1500) {
 
 /** Chamado pelos hooks do Dexie quando algo muda localmente. */
 export function noteLocalChange() {
-  if (applyingRemote || !supabase) return
+  if (!supabase) return
   scheduleSync()
 }
 
@@ -157,6 +155,7 @@ export async function initialSync(): Promise<void> {
 
 export async function startSync(): Promise<() => void> {
   if (!supabase) return () => {}
+  setChangeListener(noteLocalChange)
   const sb = supabase
   const { data } = await sb.auth.getSession()
   if (!data.session) {
@@ -187,6 +186,7 @@ export async function startSync(): Promise<() => void> {
     document.removeEventListener('visibilitychange', visible)
     window.clearInterval(interval)
     unsubscribeRealtime()
+    setChangeListener(null)
   }
 }
 

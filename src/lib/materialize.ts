@@ -119,13 +119,13 @@ export async function materializeAround(anchor: Date, settings: Settings): Promi
 }
 
 /** Remove blocos futuros gerados por uma regra (ao editar/apagar a regra). */
-export async function dropFutureFromRecurring(recurringId: number, fromDay: string): Promise<void> {
+export async function dropFutureFromRecurring(recurringId: string, fromDay: string): Promise<void> {
   const rows = await db.blocks.where('recurringId').equals(recurringId).toArray()
   const ids = rows.filter((b) => b.day >= fromDay && b.status === 'planejado').map((b) => b.id!)
   await db.blocks.bulkDelete(ids)
 }
 
-export async function dropFutureFromRoutine(routineId: number, fromDay: string): Promise<void> {
+export async function dropFutureFromRoutine(routineId: string, fromDay: string): Promise<void> {
   const rows = await db.blocks.where('routineId').equals(routineId).toArray()
   const ids = rows.filter((b) => b.day >= fromDay && b.status === 'planejado').map((b) => b.id!)
   await db.blocks.bulkDelete(ids)

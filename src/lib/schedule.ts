@@ -76,7 +76,7 @@ export async function dayLoad(day: string, s: Settings): Promise<{ busy: number;
 }
 
 /** Confere se um intervalo conflita com blocos existentes (ignorando o próprio id). */
-export async function conflictsWith(start: Date, end: Date, ignoreId?: number): Promise<Block[]> {
+export async function conflictsWith(start: Date, end: Date, ignoreId?: string): Promise<Block[]> {
   const day = dayKey(start)
   const blocks = await db.blocks.where('day').equals(day).toArray()
   const span: Span = { start: start.getTime(), end: end.getTime() }
@@ -86,7 +86,7 @@ export async function conflictsWith(start: Date, end: Date, ignoreId?: number): 
 }
 
 /** Cria um bloco para uma tarefa num horário explícito. */
-export async function placeTaskAt(task: Task, start: Date, minutes: number): Promise<number> {
+export async function placeTaskAt(task: Task, start: Date, minutes: number): Promise<string> {
   const end = addMinutes(start, minutes)
   const id = await db.blocks.add({
     title: task.title,
@@ -102,11 +102,11 @@ export async function placeTaskAt(task: Task, start: Date, minutes: number): Pro
     day: dayKey(start),
   })
   await db.tasks.update(task.id!, { status: 'planejada' })
-  return id as number
+  return id as string
 }
 
 /** Encaixa automaticamente uma tarefa no primeiro espaço livre a partir de `from`, até `horizonDays`. */
-export async function autoPlaceTask(task: Task, s: Settings, from = new Date(), horizonDays = 7): Promise<number | null> {
+export async function autoPlaceTask(task: Task, s: Settings, from = new Date(), horizonDays = 7): Promise<string | null> {
   const minutes = task.estimateMin ?? (await estimateFor('tarefa', task.title)) ?? 30
   const deadline = task.dueAt ? parseISO(task.dueAt) : null
   for (let i = 0; i < horizonDays; i++) {

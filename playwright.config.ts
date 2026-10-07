@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test'
+import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
@@ -8,7 +8,12 @@ export default defineConfig({
     baseURL: 'http://localhost:4173',
     locale: 'pt-BR',
     timezoneId: 'America/Sao_Paulo',
-    ...devices['iPhone 13'],
+    browserName: 'chromium',
+    launchOptions: { executablePath: '/opt/pw-browsers/chromium' },
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
   },
   webServer: {
     command: 'npx vite preview --port 4173 --strictPort',

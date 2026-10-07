@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Briefcase, ChevronRight, GraduationCap, Heart, Settings as Cog } from 'lucide-react'
+import { Briefcase, ChevronRight, GraduationCap, Heart, Settings as Cog, Cloud } from 'lucide-react'
 import { AREA_LABEL, db, type Area, type Reminder } from '../db/schema'
 import { fmtRelativeDays, fromDayKey, todayKey } from '../lib/time'
 import { PageHeader, cx } from '../components/ui'
@@ -148,6 +148,15 @@ export default function AreasPage() {
       >
         <span className="flex items-center gap-2">
           <Cog size={18} className="text-muted" /> Configurações e backup
+        </span>
+        <ChevronRight size={18} className="text-muted" />
+      </Link>
+      <Link
+        to="/conta"
+        className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 min-h-12 text-sm font-semibold"
+      >
+        <span className="flex items-center gap-2">
+          <Cloud size={18} className="text-muted" /> Conta e sincronização
         </span>
         <ChevronRight size={18} className="text-muted" />
       </Link>

@@ -85,7 +85,7 @@ export default function EntradaPage() {
     [plannedIds.join(',')],
   )
   const blockByTask = useMemo(() => {
-    const m = new Map<number, string>()
+    const m = new Map<string, string>()
     for (const b of (plannedBlocks ?? []).filter((b) => b.status !== 'pulado').sort((a, b) => a.start.localeCompare(b.start))) {
       if (b.taskId != null && !m.has(b.taskId)) m.set(b.taskId, fmtWhen(parseISO(b.start)))
     }

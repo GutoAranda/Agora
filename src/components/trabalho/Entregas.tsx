@@ -73,7 +73,7 @@ export function DeadlineSheet({ open, initial, onClose }: { open: boolean; initi
     }
     delete row.id
     const id = await db.deadlines.add(row)
-    return { ...row, id: id as number }
+    return { ...row, id: id as string }
   }
 
   async function save() {

@@ -31,7 +31,7 @@ export function HorarioEstagio() {
   const toast = useUI((s) => s.toast)
   const rules = useEstagioRules()
   const [editing, setEditing] = useState<Partial<Recurring> | null>(null)
-  const [removing, setRemoving] = useState<number | null>(null)
+  const [removing, setRemoving] = useState<string | null>(null)
 
   async function save(r: Recurring) {
     const id = r.id ?? editing?.id

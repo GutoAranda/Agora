@@ -37,7 +37,7 @@ function DeadlineSheet({ deadline, courses, onClose }: { deadline: Partial<Deadl
   const toast = useUI((s) => s.toast)
   const [title, setTitle] = useState(deadline?.title ?? '')
   const [type, setType] = useState<DeadlineType>(deadline?.type ?? 'trabalho')
-  const [courseId, setCourseId] = useState<number | undefined>(deadline?.courseId)
+  const [courseId, setCourseId] = useState<string | undefined>(deadline?.courseId)
   const [dueAt, setDueAt] = useState(deadline?.dueAt ?? defaultDue())
   const [estimateMin, setEstimateMin] = useState(deadline?.estimateMin ?? 240)
   const [milestones, setMilestones] = useState<Milestone[]>(deadline?.milestones ?? [])
@@ -77,7 +77,7 @@ function DeadlineSheet({ deadline, courses, onClose }: { deadline: Partial<Deadl
       notes: notes.trim() || undefined,
       createdAt: deadline?.createdAt ?? new Date().toISOString(),
     }
-    const id = (await db.deadlines.put(data)) as number
+    const id = (await db.deadlines.put(data)) as string
     return { ...data, id }
   }
 
@@ -139,7 +139,7 @@ function DeadlineSheet({ deadline, courses, onClose }: { deadline: Partial<Deadl
             </Select>
           </Field>
           <Field label="Disciplina">
-            <Select value={courseId ?? ''} onChange={(e) => setCourseId(e.target.value ? Number(e.target.value) : undefined)}>
+            <Select value={courseId ?? ''} onChange={(e) => setCourseId(e.target.value || undefined)}>
               <option value="">— nenhuma —</option>
               {courses.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -268,7 +268,7 @@ export function Prazos({ deadlines, courses }: { deadlines: Deadline[]; courses:
   const now = useUI((s) => s.now).getTime()
   const [edit, setEdit] = useState<Partial<Deadline> | null>(null)
   const open = deadlines.filter((d) => !d.done).sort((a, b) => a.dueAt.localeCompare(b.dueAt))
-  const courseName = (id?: number) => courses.find((c) => c.id === id)?.name
+  const courseName = (id?: string) => courses.find((c) => c.id === id)?.name
 
   return (
     <div>

@@ -80,7 +80,7 @@ function NightSteps({ onClose }: { onClose: () => void }) {
           createdAt: new Date().toISOString(),
           rescheduleCount: 0,
         }
-        const id = (await db.tasks.add(task)) as number
+        const id = (await db.tasks.add(task)) as string
         created = true
         const blockId = await autoPlaceTask({ ...task, id }, settings, new Date(tomorrow + 'T00:00'))
         if (blockId !== null) {
@@ -90,7 +90,7 @@ function NightSteps({ onClose }: { onClose: () => void }) {
       }
 
       const swept = await sweepUnfinished(today)
-      if (settings.minimalDayOn === today) await db.settings.update(1, { minimalDayOn: undefined })
+      if (settings.minimalDayOn === today) await db.settings.update('1', { minimalDayOn: undefined })
 
       await db.reviews.add({
         date: today,

@@ -16,9 +16,9 @@ export interface CourseDraft {
 
 const EMPTY: CourseDraft = { name: '', weekdays: [], start: '19:00', end: '20:40', room: '', absenceLimit: 7 }
 
-export async function addCourseWithRule(d: CourseDraft): Promise<number> {
+export async function addCourseWithRule(d: CourseDraft): Promise<string> {
   const course: Course = { name: d.name.trim(), room: d.room.trim() || undefined, absenceLimit: d.absenceLimit }
-  const courseId = (await db.courses.add(course)) as number
+  const courseId = (await db.courses.add(course)) as string
   if (d.weekdays.length) {
     const rule: Recurring = {
       title: course.name,
@@ -37,12 +37,12 @@ export async function addCourseWithRule(d: CourseDraft): Promise<number> {
   return courseId
 }
 
-export async function removeCourseWithRules(courseId: number): Promise<void> {
+export async function removeCourseWithRules(courseId: string): Promise<void> {
   await db.recurring.where('courseId').equals(courseId).delete()
   await db.courses.delete(courseId)
 }
 
-export function CourseForm({ onAdded }: { onAdded?: (id: number) => void }) {
+export function CourseForm({ onAdded }: { onAdded?: (id: string) => void }) {
   const [d, setD] = useState<CourseDraft>(EMPTY)
   const [saving, setSaving] = useState(false)
   const valid = d.name.trim().length > 0 && d.weekdays.length > 0 && d.start < d.end

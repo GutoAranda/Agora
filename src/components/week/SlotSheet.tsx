@@ -29,7 +29,7 @@ function ConflictNote({ conflicts }: { conflicts: Block[] }) {
   )
 }
 
-function useConflicts(start: Date | null, end: Date | null, ignoreId?: number): Block[] {
+function useConflicts(start: Date | null, end: Date | null, ignoreId?: string): Block[] {
   const [list, setList] = useState<Block[]>([])
   const s = start?.getTime()
   const e = end?.getTime()
@@ -60,7 +60,7 @@ function PlaceTask({ slot, onDone }: { slot: FreeSlot; onDone: () => void }) {
       .filter((t) => !busy.has(t.id))
       .sort((a, b) => (a.dueAt ?? '9').localeCompare(b.dueAt ?? '9') || a.createdAt.localeCompare(b.createdAt))
   }, [])
-  const [taskId, setTaskId] = useState<number | null>(null)
+  const [taskId, setTaskId] = useState<string | null>(null)
   const task = useMemo(() => tasks?.find((t) => t.id === taskId) ?? null, [tasks, taskId])
   const [minutes, setMinutes] = useState<number>(0)
   useEffect(() => {

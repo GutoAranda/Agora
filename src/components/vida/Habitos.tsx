@@ -84,7 +84,7 @@ export function Habitos() {
 
   const full = (habits?.length ?? 0) >= MAX_ACTIVE
 
-  async function toggle(habitId: number, date: string) {
+  async function toggle(habitId: string, date: string) {
     const existing = await db.habitLogs.where('[habitId+date]').equals([habitId, date]).first()
     if (existing) await db.habitLogs.delete(existing.id!)
     else await db.habitLogs.add({ habitId, date })

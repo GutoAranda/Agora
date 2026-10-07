@@ -9,6 +9,7 @@ import { applyMinimalDay } from '../lib/schedule'
 import { BlockActions } from '../components/BlockActions'
 import { Button, Card, Chip, Empty, cx } from '../components/ui'
 import { QuickCapture } from '../components/QuickCapture'
+import { SyncStatus } from '../components/SyncStatus'
 
 /* ==========================================================================
    Tela Agora: uma única coisa. O bloco atual com a barra de tempo encolhendo,
@@ -70,9 +71,12 @@ export default function AgoraPage() {
             {settings.name ? `, ${settings.name}` : ''}
           </h1>
         </div>
-        <Link to="/config" className="p-2 text-muted" aria-label="Configurações">
-          <Cog size={22} />
-        </Link>
+        <div className="flex items-center gap-2">
+          <SyncStatus />
+          <Link to="/config" className="p-2 text-muted" aria-label="Configurações">
+            <Cog size={22} />
+          </Link>
+        </div>
       </header>
 
       {minimalOn && (
@@ -126,7 +130,7 @@ export default function AgoraPage() {
                   {next.firstStep ? ` · ${next.firstStep}` : ''}
                 </p>
               </div>
-              <Chip>{Math.max(0, Math.round((parseISO(next.start).getTime() - now.getTime()) / 60000))} min</Chip>
+              <Chip>em {fmtDuration(Math.max(1, Math.round((parseISO(next.start).getTime() - now.getTime()) / 60000)))}</Chip>
             </div>
           </Card>
         </div>
@@ -176,7 +180,7 @@ export default function AgoraPage() {
             className="flex-1"
             onClick={async () => {
               const n = await applyMinimalDay(today)
-              await db.settings.update(1, { minimalDayOn: today })
+              await db.settings.update('1', { minimalDayOn: today })
               toast(n ? `Dia mínimo: ${n} ${n === 1 ? 'tarefa voltou' : 'tarefas voltaram'} para a entrada.` : 'Dia mínimo ligado.')
             }}
           >

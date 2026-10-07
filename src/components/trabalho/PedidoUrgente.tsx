@@ -13,7 +13,7 @@ import { ChoiceChips, ESTIMATE_OPTIONS } from './ChoiceChips'
    ========================================================================== */
 
 /** Igual a freeSlots, mas simulando a remoção de alguns blocos (sem tocar no banco). */
-async function simulateSlots(day: string, s: Settings, exclude: Set<number>, notBefore?: Date, minMinutes = 15): Promise<FreeSlot[]> {
+async function simulateSlots(day: string, s: Settings, exclude: Set<string>, notBefore?: Date, minMinutes = 15): Promise<FreeSlot[]> {
   const prev = dayKey(addDays(fromDayKey(day), -1))
   const dayBlocks = await db.blocks.where('day').equals(day).toArray()
   const prevBlocks = (await db.blocks.where('day').equals(prev).toArray()).filter((b) => parseISO(b.end).getTime() > fromDayKey(day).getTime())
@@ -51,7 +51,7 @@ export function PedidoUrgente() {
   const [estimate, setEstimate] = useState(60)
   const [when, setWhen] = useState<'hoje' | 'amanha'>('hoje')
   const [soft, setSoft] = useState<Block[]>([])
-  const [pushed, setPushed] = useState<Set<number>>(new Set())
+  const [pushed, setPushed] = useState<Set<string>>(new Set())
   const [slot, setSlot] = useState<FreeSlot | null>(null)
   const [checking, setChecking] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -96,7 +96,7 @@ export function PedidoUrgente() {
   const pushedList = soft.filter((b) => pushed.has(b.id!))
   const valid = title.trim().length > 0 && firstStep.trim().length > 0 && !!slot
 
-  function toggle(id: number) {
+  function toggle(id: string) {
     setPushed((p) => {
       const n = new Set(p)
       if (n.has(id)) n.delete(id)

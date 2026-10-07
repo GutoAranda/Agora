@@ -168,7 +168,7 @@ export async function importFaltae(text: string): Promise<FaltaeResult> {
         num(pick(raw, 'limiteFaltas', 'faltasMax', 'maxFaltas', 'limite', 'absenceLimit', 'maxAbsences', 'absencesLimit', 'faltasPermitidas')) ?? 7,
       semesterEnd: semesterEnd ? dayKey(semesterEnd) : undefined,
     }
-    const courseId = (await db.courses.add(course)) as number
+    const courseId = (await db.courses.add(course)) as string
     res.courses++
 
     // Horários → agrupa por início/fim/sala para virar uma regra por combinação.

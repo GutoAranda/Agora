@@ -45,7 +45,7 @@ export default function SemanaPage() {
   const [selected, setSelected] = useState(activeDay)
   const [showSkipped, setShowSkipped] = useState(false)
   const [slot, setSlot] = useState<FreeSlot | null>(null)
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   // Ao trocar de semana, seleciona o dia ativo (se estiver nela) ou a segunda-feira.
   const goWeek = (start: Date) => {

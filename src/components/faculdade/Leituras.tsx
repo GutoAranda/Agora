@@ -50,7 +50,7 @@ async function scheduleReading(r: Reading, minutes: number, pagesPerHour: number
 function ReadingSheet({ reading, courses, onClose }: { reading: Partial<Reading> | null; courses: Course[]; onClose: () => void }) {
   const toast = useUI((s) => s.toast)
   const [title, setTitle] = useState(reading?.title ?? '')
-  const [courseId, setCourseId] = useState<number | undefined>(reading?.courseId ?? courses[0]?.id)
+  const [courseId, setCourseId] = useState<string | undefined>(reading?.courseId ?? courses[0]?.id)
   const [pages, setPages] = useState(reading?.pages ?? 30)
   const [pagesDone, setPagesDone] = useState(reading?.pagesDone ?? 0)
   const [dueAt, setDueAt] = useState(reading?.dueAt ? reading.dueAt.slice(0, 10) : '')
@@ -83,7 +83,7 @@ function ReadingSheet({ reading, courses, onClose }: { reading: Partial<Reading>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ex.: Capítulo 4 — Termodinâmica" autoFocus={isNew} />
         </Field>
         <Field label="Disciplina">
-          <Select value={courseId ?? ''} onChange={(e) => setCourseId(e.target.value ? Number(e.target.value) : undefined)}>
+          <Select value={courseId ?? ''} onChange={(e) => setCourseId(e.target.value || undefined)}>
             <option value="">— escolha —</option>
             {courses.map((c) => (
               <option key={c.id} value={c.id}>

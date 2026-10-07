@@ -1,69 +1,57 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Settings as Cog, Moon, Plus } from 'lucide-react'
-import { db, type Block, AREA_LABEL } from '../db/schema'
+import { Check, Clock, Footprints, Moon, Plus, Settings as Cog, Timer } from 'lucide-react'
+import { db, isDoneOn, markDone, moveLater, updateSettings } from '../db/schema'
 import { useUI } from '../store/ui'
-import { fmtDay, fmtDuration, hhmm, parseISO, todayKey } from '../lib/time'
-import { applyMinimalDay } from '../lib/schedule'
-import { BlockActions } from '../components/BlockActions'
-import { Button, Card, Chip, Empty, cx } from '../components/ui'
-import { QuickCapture } from '../components/QuickCapture'
+import { addDays, dayKey, fmtDay, fmtDuration, hhmm, todayKey } from '../lib/time'
+import { hardDayFilter, pickNow, todayList } from '../lib/day'
+import { Button, Card } from '../components/ui'
+import { ItemSheet } from '../components/ItemSheet'
+import { CloseDaySheet } from '../components/CloseDaySheet'
 import { SyncStatus } from '../components/SyncStatus'
 
 /* ==========================================================================
-   Tela Agora: uma única coisa. O bloco atual com a barra de tempo encolhendo,
-   o primeiro passo e os três botões. O próximo em segundo plano.
+   Agora: uma coisa só. O resto fica escondido.
    ========================================================================== */
 
-function TimeMeter({ block, now }: { block: Block; now: Date }) {
-  const s = parseISO(block.start).getTime()
-  const e = parseISO(block.end).getTime()
-  const total = Math.max(1, e - s)
-  const left = Math.max(0, e - now.getTime())
-  const pct = Math.min(100, Math.max(0, (left / total) * 100))
-  const leftMin = Math.ceil(left / 60000)
-  return (
-    <div>
-      <div className="meter" aria-hidden="true">
-        <i style={{ width: `${pct}%` }} />
-      </div>
-      <div className="flex justify-between text-xs text-muted mt-1.5 tabular">
-        <span>{leftMin > 0 ? `faltam ${fmtDuration(leftMin)}` : 'tempo esgotado'}</span>
-        <span>até {hhmm(block.end)}</span>
-      </div>
-    </div>
-  )
-}
+const CHEERS = ['Feito. Isso conta.', 'Mais um.', 'Boa. Respira.', 'Fechou.', 'Pronto. O dia já valeu.']
 
 export default function AgoraPage() {
   const now = useUI((s) => s.now)
   const settings = useUI((s) => s.settings)
   const toast = useUI((s) => s.toast)
+  const nav = useNavigate()
   const [capture, setCapture] = useState(false)
+  const [closing, setClosing] = useState(false)
   const today = todayKey()
-  const blocks = useLiveQuery(() => db.blocks.where('day').equals(today).sortBy('start'), [today])
+  const tomorrow = dayKey(addDays(new Date(), 1))
+  const items = useLiveQuery(() => db.items.toArray(), [], [])
+  const hard = settings.hardDay === today
 
-  const { current, next, later, done } = useMemo(() => {
-    const t = now.getTime()
-    const live = (blocks ?? []).filter((b) => b.status !== 'pulado' && b.kind !== 'sono')
-    const started = live.find((b) => b.status === 'iniciado')
-    const inWindow = live.find((b) => b.status === 'planejado' && parseISO(b.start).getTime() <= t && parseISO(b.end).getTime() > t)
-    const current = started ?? inWindow ?? null
-    const upcoming = live.filter((b) => b.status === 'planejado' && b.id !== current?.id && parseISO(b.end).getTime() > t)
-    const next = upcoming[0] ?? null
-    const later = upcoming.slice(1)
-    const done = live.filter((b) => b.status === 'feito')
-    return { current, next, later, done }
-  }, [blocks, now])
+  const { open, doneCount, main, nextOne } = useMemo(() => {
+    let list = todayList(items, today, now.getDay())
+    if (hard) list = hardDayFilter(list, today)
+    const open = list.filter((i) => !isDoneOn(i, today))
+    const doneCount = list.length - open.length
+    const main = pickNow(open, today, now)
+    const rest = open.filter((i) => i.id !== main?.slot.item.id)
+    const nextOne = rest.find((i) => !i.time || i.time >= hhmm(now)) ?? null
+    return { open, doneCount, main, nextOne }
+  }, [items, today, now, hard])
 
-  const minimalOn = settings.minimalDayOn === today
   const hour = now.getHours()
-  const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
+  const greeting = hour < 5 ? 'Boa noite' : hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
+  const evening = (hour >= 20 || hour < 4) && settings.closedDay !== today
+
+  const it = main?.slot.item
+  const s = main?.slot
+  const progress =
+    main?.kind === 'emCurso' && s?.start && s.end ? Math.max(0, Math.min(1, (s.end.getTime() - now.getTime()) / (s.end.getTime() - s.start.getTime()))) : null
 
   return (
     <div>
-      <header className="flex items-start justify-between mb-5">
+      <header className="flex items-start justify-between mb-6">
         <div>
           <p className="text-sm text-muted">{fmtDay(now, "EEEE, d 'de' MMMM")}</p>
           <h1 className="text-2xl font-extrabold">
@@ -71,125 +59,124 @@ export default function AgoraPage() {
             {settings.name ? `, ${settings.name}` : ''}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <SyncStatus />
-          <Link to="/config" className="p-2 text-muted" aria-label="Configurações">
+          <Link to="/ajustes" className="p-2 text-muted" aria-label="Ajustes">
             <Cog size={22} />
           </Link>
         </div>
       </header>
 
-      {minimalOn && (
-        <div className="mb-4 rounded-xl bg-accent/10 text-accent text-sm font-semibold px-3 py-2">
-          Dia mínimo ligado: só as pedras e uma tarefa. Cumprir isso já conta.
-        </div>
-      )}
-
-      {current ? (
-        <Card area={current.area} className="mb-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className={cx(`area-${current.area} area-text`, 'text-xs font-bold uppercase tracking-wider')}>{AREA_LABEL[current.area]}</span>
-            <span className="text-xs text-muted tabular">
-              {hhmm(current.start)}–{hhmm(current.end)}
-            </span>
-          </div>
-          <h2 className="text-2xl font-extrabold leading-tight mb-3">{current.title}</h2>
-          {current.location && <p className="text-sm text-muted mb-2">{current.location}</p>}
-          <TimeMeter block={current} now={now} />
-          <div className="mt-4">
-            <BlockActions block={current} />
-          </div>
-        </Card>
-      ) : (
-        <Card className="mb-4">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted mb-1">Agora</p>
-          <h2 className="text-xl font-extrabold">Espaço livre</h2>
-          <p className="text-sm text-muted mt-1">
-            {next ? `Nada marcado até ${hhmm(next.start)}. Descanse ou puxe algo da entrada.` : 'Nada mais marcado hoje.'}
-          </p>
-          <div className="flex gap-2 mt-3">
-            <Button variant="primary" onClick={() => setCapture(true)}>
-              <Plus size={18} /> Anotar algo
-            </Button>
-            <Link to="/entrada">
-              <Button>Ver entrada</Button>
-            </Link>
-          </div>
-        </Card>
-      )}
-
-      {next && (
-        <div className="mb-5">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Próximo</p>
-          <Card area={next.area} className="py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-bold truncate">{next.title}</p>
-                <p className="text-sm text-muted tabular">
-                  {hhmm(next.start)} · {fmtDuration(Math.round((parseISO(next.end).getTime() - parseISO(next.start).getTime()) / 60000))}
-                  {next.firstStep ? ` · ${next.firstStep}` : ''}
-                </p>
-              </div>
-              <Chip>em {fmtDuration(Math.max(1, Math.round((parseISO(next.start).getTime() - now.getTime()) / 60000)))}</Chip>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {later.length > 0 && (
-        <details className="mb-5">
-          <summary className="text-xs font-bold uppercase tracking-wider text-muted cursor-pointer select-none">
-            Depois ({later.length})
-          </summary>
-          <ul className="mt-2 divide-y divide-line border border-line rounded-2xl bg-surface">
-            {later.map((b) => (
-              <li key={b.id} className={cx(`area-${b.area}`, 'flex items-center gap-3 px-3 py-2.5')}>
-                <span className="area-dot w-2 h-2 rounded-full" />
-                <span className="text-sm tabular text-muted w-11">{hhmm(b.start)}</span>
-                <span className="text-sm font-semibold truncate">{b.title}</span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-
-      {done.length > 0 && (
-        <p className="text-sm text-muted mb-5">
-          Hoje você já fechou <strong className="text-fg">{done.length}</strong> {done.length === 1 ? 'bloco' : 'blocos'}.
+      {hard && (
+        <p className="mb-4 rounded-xl bg-accent/10 text-accent text-sm font-semibold px-3 py-2">
+          Dia difícil: só o essencial aparece. Fazer uma coisa já conta.
         </p>
       )}
 
-      {!blocks?.length && (
-        <Empty
-          title="Dia vazio"
-          hint="Cadastre suas aulas, o estágio e as rotinas em Áreas, ou anote algo na entrada."
-          action={
-            <Link to="/areas">
-              <Button variant="primary">Montar meu dia</Button>
-            </Link>
-          }
-        />
+      {it && s ? (
+        <Card className="mb-4 p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted mb-1">
+            {main.kind === 'emCurso' && 'Agora'}
+            {main.kind === 'sair' && 'Hora de sair'}
+            {main.kind === 'tarefa' && 'Próxima coisa'}
+            {main.kind === 'proximo' && 'Daqui a pouco'}
+          </p>
+          <h2 className="text-3xl font-extrabold leading-tight mb-2">{it.title}</h2>
+
+          {s.start && (
+            <p className="text-muted tabular flex items-center gap-1.5">
+              <Clock size={16} /> {hhmm(s.start)}
+              {s.end && `–${hhmm(s.end)}`}
+            </p>
+          )}
+          {s.leave && (
+            <p className="text-muted tabular flex items-center gap-1.5 mt-1">
+              <Footprints size={16} /> Saia às {hhmm(s.leave)}
+              {it.travelHow ? ` · ${it.travelHow}` : ''}
+            </p>
+          )}
+          {!s.start && it.minutes && <p className="text-muted">{fmtDuration(it.minutes)}</p>}
+
+          {progress !== null && (
+            <div className="meter mt-3" aria-hidden="true">
+              <i style={{ width: `${progress * 100}%` }} />
+            </div>
+          )}
+
+          {it.firstStep && (
+            <p className="mt-3 text-lg">
+              Comece por: <strong>{it.firstStep}</strong>
+            </p>
+          )}
+
+          <div className="grid gap-2 mt-5">
+            {main.kind !== 'sair' && (
+              <Button variant="primary" className="min-h-14 text-lg" onClick={() => nav(`/foco?item=${it.id}`)}>
+                <Timer size={20} /> Focar nisso
+              </Button>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                onClick={async () => {
+                  await markDone(it, today)
+                  toast(CHEERS[Math.floor(Math.random() * CHEERS.length)])
+                }}
+              >
+                <Check size={18} /> Feito
+              </Button>
+              <Button
+                onClick={async () => {
+                  await moveLater(it, today, tomorrow)
+                  toast(it.repeat?.length ? 'Hoje não. Tudo bem.' : 'Foi para amanhã.')
+                }}
+              >
+                Mais tarde
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <Card className="mb-4 p-5 text-center">
+          <h2 className="text-2xl font-extrabold">{open.length === 0 && doneCount > 0 ? 'Tudo feito por hoje.' : 'Nada marcado agora.'}</h2>
+          <p className="text-muted mt-1">{open.length === 0 && doneCount > 0 ? 'Descansa. Você merece.' : 'Anote o que vier à cabeça ou só respire.'}</p>
+        </Card>
       )}
 
-      <div className="flex gap-2 mt-2">
-        <Button className="flex-1" onClick={() => setCapture(true)}>
-          <Plus size={18} /> Anotar
-        </Button>
-        {!minimalOn && (
-          <Button
-            className="flex-1"
-            onClick={async () => {
-              const n = await applyMinimalDay(today)
-              await db.settings.update('1', { minimalDayOn: today })
-              toast(n ? `Dia mínimo: ${n} ${n === 1 ? 'tarefa voltou' : 'tarefas voltaram'} para a entrada.` : 'Dia mínimo ligado.')
-            }}
-          >
-            <Moon size={18} /> Dia difícil
-          </Button>
+      {nextOne && (
+        <p className="text-sm text-muted mb-6 px-1 truncate">
+          Depois: <span className="text-fg font-semibold">{nextOne.title}</span>
+          {nextOne.time ? ` · ${nextOne.time}` : ''}
+        </p>
+      )}
+
+      {evening && (
+        <button type="button" onClick={() => setClosing(true)} className="w-full mb-4 rounded-2xl border border-line bg-surface p-4 text-left flex items-center gap-3">
+          <Moon size={22} className="text-accent shrink-0" />
+          <span>
+            <span className="block font-bold">Fechar o dia</span>
+            <span className="block text-sm text-muted">1 minuto. Deixa amanhã mais leve.</span>
+          </span>
+        </button>
+      )}
+
+      <Button variant="secondary" className="w-full min-h-14 text-lg" onClick={() => setCapture(true)}>
+        <Plus size={20} /> Anotar
+      </Button>
+
+      <div className="text-center mt-6">
+        {hard ? (
+          <button type="button" className="text-sm text-muted underline min-h-11" onClick={() => void updateSettings({ hardDay: undefined })}>
+            Voltar ao dia normal
+          </button>
+        ) : (
+          <button type="button" className="text-sm text-muted underline min-h-11" onClick={() => void updateSettings({ hardDay: today })}>
+            Hoje está difícil
+          </button>
         )}
       </div>
 
-      <QuickCapture open={capture} onClose={() => setCapture(false)} />
+      <ItemSheet open={capture} onClose={() => setCapture(false)} />
+      <CloseDaySheet open={closing} onClose={() => setClosing(false)} />
     </div>
   )
 }

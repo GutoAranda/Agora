@@ -1,6 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
 import { X } from 'lucide-react'
-import { AREA_LABEL, AREAS, type Area } from '../db/schema'
 
 /* Componentes básicos. Tudo mobile-first, alvo de toque ≥ 44px. */
 
@@ -24,9 +23,9 @@ export function Button({
   return <button className={cx(base, v[variant], className)} {...props} />
 }
 
-export function Card({ className, children, area }: { className?: string; children: ReactNode; area?: Area }) {
+export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={cx('bg-surface border border-line rounded-2xl p-4', area && `area-${area} area-bar`, className)}>
+    <div className={cx('bg-surface border border-line rounded-2xl p-4', className)}>
       {children}
     </div>
   )
@@ -58,33 +57,6 @@ export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select {...props} className={cx(inputCls, props.className)} />
-}
-
-export function AreaPicker({ value, onChange, allowEmpty }: { value?: Area; onChange: (a: Area) => void; allowEmpty?: boolean }) {
-  return (
-    <div className="flex gap-2" role="radiogroup" aria-label="Área">
-      {AREAS.map((a) => (
-        <button
-          key={a}
-          type="button"
-          role="radio"
-          aria-checked={value === a}
-          onClick={() => onChange(a)}
-          className={cx(
-            `area-${a} flex-1 min-h-11 rounded-xl border text-sm font-semibold`,
-            value === a ? 'area-bg area-text border-transparent' : 'border-line text-muted',
-          )}
-        >
-          {AREA_LABEL[a]}
-        </button>
-      ))}
-      {allowEmpty && !value && <span className="sr-only">Nenhuma área</span>}
-    </div>
-  )
-}
-
-export function AreaDot({ area }: { area: Area }) {
-  return <span className={cx(`area-${area} area-dot`, 'inline-block w-2.5 h-2.5 rounded-full')} aria-hidden="true" />
 }
 
 export function Chip({ children, tone = 'muted' }: { children: ReactNode; tone?: 'muted' | 'ok' | 'warn' | 'accent' }) {

@@ -27,35 +27,25 @@ https://gutoaranda.github.io/Agora/ (publicado automaticamente a cada push na br
 
 Veja `supabase/README.md`. Sem configurar, o app roda em modo local.
 
+## O que tem
+
+- **Agora:** uma coisa só na tela, com primeiro passo, hora de sair e três botões: Focar nisso, Feito, Mais tarde.
+- **Hoje:** a lista do dia. Amanhã e "Algum dia" ficam fechados.
+- **Foco:** pomodoro (15, 25 ou 45 min, pausa curta e longa).
+- **Trajeto:** qualquer compromisso com horário pode ter ida, volta e como vai.
+- **Dia difícil:** mostra só os compromissos e uma tarefa.
+- **Fechar o dia:** o que ficou vai para amanhã, sem culpa.
+
+Ferramentas novas (como o pomodoro) moram em `src/tools/<nome>/`.
+
 ## Estrutura
 
 ```
 src/
-  db/schema.ts        modelo de dados (Dexie / IndexedDB) e sync hooks
-  lib/time.ts         utilitários de data e hora
-  lib/materialize.ts  regras recorrentes, rotinas e sono → blocos por dia
-  lib/schedule.ts     espaços livres, encaixe automático, marcos, dia mínimo
-  lib/calibration.ts  quanto cada coisa leva de verdade
-  lib/score.ts        placar semanal sem culpa
-  lib/notify.ts       notificações com escalada 10 / 2 / 0 min
-  lib/sync.ts         sincronização local-first com Supabase
-  lib/ics.ts          importação de calendários (.ics)
-  lib/importers.ts    importação do Faltaê (JSON) e Notion (CSV)
-  pages/              Agora, Semana, Entrada, Áreas (Faculdade, Trabalho, Vida), Revisão, Config, Conta
-  components/         UI básica, ações do bloco, captura rápida, status de sync
-supabase/
-  migrations/0001_init.sql
+  db/schema.ts          itens, sessões de foco, ajustes e sincronização
+  lib/day.ts            o que mostrar "agora"
+  lib/sync.ts           sincronização com Supabase
+  tools/pomodoro/       cronômetro de foco
+  pages/                Agora, Hoje, Ajustes, Conta
+  components/           UI, anotar/editar, fechar o dia
 ```
-
-## Princípios (da pesquisa)
-
-1. Uma tela, uma próxima ação.
-2. Tempo visível e físico.
-3. Calibração automática de duração e folgas.
-4. Toda tarefa vira plano "se-então" (gatilho obrigatório).
-5. Começar é a meta: micro primeiro passo.
-6. Recompensa imediata, leve e variável.
-7. Zero culpa: nada fica vermelho, nenhuma sequência zera.
-8. Dia mínimo e reinício suave.
-9. Noite e sono como âncora.
-10. Configuração uma vez; ajustes no domingo.

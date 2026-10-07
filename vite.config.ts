@@ -15,7 +15,7 @@ export default defineConfig({
       manifest: {
         name: 'Agora',
         short_name: 'Agora',
-        description: 'Faculdade, trabalho e vida em uma linha do tempo.',
+        description: 'Uma coisa de cada vez. Agora, hoje e foco.',
         lang: 'pt-BR',
         start_url: base,
         scope: base,

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
 
-/* Fumaça: o app abre, passa pelo primeiro dia, captura uma tarefa e navega. */
+/* Fumaça da versão enxuta: anotar, ver no Agora, marcar feito, trajeto e pomodoro. */
 
-test('primeiro dia, captura e navegação', async ({ page }) => {
+test('anotar, agora, trajeto e foco', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   page.on('console', (m) => {
@@ -10,49 +10,58 @@ test('primeiro dia, captura e navegação', async ({ page }) => {
   })
 
   await page.goto('/')
-  await expect(page.getByRole('heading').first()).toBeVisible()
-  await page.screenshot({ path: 'test-results/01-onboarding.png', fullPage: true })
-
-  // Avança o primeiro dia pelo caminho mais curto (botões "Pular"/"Continuar"/"Começar").
-  for (let i = 0; i < 12; i++) {
-    const done = await page.getByRole('navigation', { name: 'Principal' }).isVisible().catch(() => false)
-    if (done) break
-    const btn = page.getByRole('button', { name: /pular|continuar|começar a usar|concluir|próximo|avançar|começar/i }).last()
-    if (await btn.isVisible().catch(() => false)) await btn.click()
-    else break
-    await page.waitForTimeout(250)
-  }
   await expect(page.getByRole('navigation', { name: 'Principal' })).toBeVisible()
-  await page.screenshot({ path: 'test-results/02-agora.png', fullPage: true })
+  await page.screenshot({ path: 'test-results/01-agora-vazio.png', fullPage: true })
 
-  // Captura rápida
-  await page.getByRole('button', { name: /anotar/i }).first().click()
-  await page.getByPlaceholder(/o que surgiu/i).fill('Ligar para o médico')
-  await page.getByRole('button', { name: /guardar na entrada/i }).click()
+  // Anotar uma tarefa simples
+  await page.getByRole('button', { name: /^Anotar$/ }).last().click()
+  await page.getByPlaceholder(/o que surgiu/i).fill('Responder e-mail do estágio')
+  await page.getByRole('button', { name: /mais detalhes/i }).click()
+  await page.getByPlaceholder(/abrir o arquivo/i).fill('abrir o e-mail')
+  await page.getByRole('button', { name: /^Guardar$/ }).click()
+  await expect(page.getByRole('heading', { name: 'Responder e-mail do estágio' })).toBeVisible()
+  await expect(page.getByText('abrir o e-mail')).toBeVisible()
+  await page.screenshot({ path: 'test-results/02-agora-tarefa.png', fullPage: true })
 
-  // Navega por todas as abas e páginas de área
-  for (const [name, shot] of [
-    ['Semana', '03-semana'],
-    ['Entrada', '04-entrada'],
-    ['Áreas', '05-areas'],
-    ['Revisão', '06-revisao'],
-  ] as const) {
-    await page.getByRole('link', { name }).click()
-    await page.waitForTimeout(300)
-    await page.screenshot({ path: `test-results/${shot}.png`, fullPage: true })
-  }
-  await expect(page.getByText('Ligar para o médico').first()).toBeVisible({ timeout: 5000 }).catch(() => {})
+  // Compromisso com trajeto personalizado (daqui a 30 min, 25 min de ida de metrô)
+  const [hh, mm] = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })
+    .format(new Date(Date.now() + 30 * 60000))
+    .split(':')
+  await page.getByRole('link', { name: 'Hoje' }).click()
+  await page.getByRole('button', { name: 'Anotar' }).first().click()
+  await page.getByPlaceholder(/o que surgiu/i).fill('Consulta médica')
+  await page.getByRole('button', { name: /mais detalhes/i }).click()
+  await page.locator('#item-time').fill(`${hh}:${mm}`)
+  await page.locator('#item-to').fill('25')
+  await page.locator('#item-back').fill('40')
+  await page.locator('#item-how').fill('metrô')
+  await page.getByRole('button', { name: /^Guardar$/ }).click()
+  await expect(page.getByText('Consulta médica')).toBeVisible()
+  await expect(page.getByText(/sair \d\d:\d\d/)).toBeVisible()
+  await page.screenshot({ path: 'test-results/03-hoje.png', fullPage: true })
 
-  for (const [path, shot] of [
-    ['/areas/faculdade', '07-faculdade'],
-    ['/areas/trabalho', '08-trabalho'],
-    ['/areas/vida', '09-vida'],
-    ['/config', '10-config'],
-  ] as const) {
-    await page.goto(path)
-    await page.waitForTimeout(300)
-    await page.screenshot({ path: `test-results/${shot}.png`, fullPage: true })
-  }
+  // Agora: hora de sair aparece (faltam 30 min, ida 25)
+  await page.getByRole('link', { name: 'Agora' }).click()
+  await expect(page.getByText(/Saia às/)).toBeVisible()
+  await page.screenshot({ path: 'test-results/04-agora-sair.png', fullPage: true })
+
+  // Foco
+  await page.getByRole('link', { name: 'Foco' }).click()
+  await expect(page.getByText(/25:00/)).toBeVisible()
+  await page.getByRole('button', { name: '15 min' }).click()
+  await expect(page.getByText(/15:00/)).toBeVisible()
+  await page.getByRole('button', { name: 'Começar', exact: true }).click()
+  await page.waitForTimeout(1500)
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible()
+  await page.screenshot({ path: 'test-results/05-foco.png', fullPage: true })
+  await page.getByRole('button', { name: 'Pausar' }).click()
+  await expect(page.getByText('pausado')).toBeVisible()
+
+  // Ajustes
+  await page.getByRole('link', { name: 'Agora' }).click()
+  await page.getByRole('link', { name: 'Ajustes' }).click()
+  await expect(page.getByRole('heading', { name: 'Ajustes' })).toBeVisible()
+  await page.screenshot({ path: 'test-results/06-ajustes.png', fullPage: true })
 
   expect(errors, errors.join('\n')).toEqual([])
 })

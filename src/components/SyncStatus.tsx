@@ -9,6 +9,8 @@ export function SyncStatus({ className }: { className?: string }) {
   const [s, setS] = useState<{ state: SyncState; detail: string }>(getSyncState())
   useEffect(() => onSyncState((state, detail) => setS({ state, detail: detail ?? '' })), [])
   if (!cloudEnabled) return null
+  // Menos ruído: só aparece quando há algo a dizer.
+  if (s.state === 'idle' || s.state === 'signed-out' || s.state === 'local') return null
   const map: Record<SyncState, { icon: typeof Cloud; label: string; tone: string }> = {
     local: { icon: CloudOff, label: 'Local', tone: 'text-muted' },
     'signed-out': { icon: CloudOff, label: 'Sem conta', tone: 'text-muted' },

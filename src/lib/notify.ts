@@ -1,69 +1,60 @@
-import { db } from '../db/schema'
-import { parseISO, todayKey } from './time'
+/* Notificações simples. No iPhone só funcionam com o app instalado na Tela de Início
+   e, sem servidor de push, só disparam com o app aberto. */
 
-/* ==========================================================================
-   Notificações: só as que trazem uma ação. Escalada de transição:
-   10 min antes (discreta), 2 min antes, na hora.
-   Funciona enquanto o app está aberto ou instalado (web push sem servidor
-   não existe; usamos timers + Notification API + badge).
-   ========================================================================== */
-
-export async function requestPermission(): Promise<boolean> {
-  if (!('Notification' in window)) return false
-  if (Notification.permission === 'granted') return true
-  if (Notification.permission === 'denied') return false
-  const r = await Notification.requestPermission()
-  return r === 'granted'
-}
+const ICON = import.meta.env.BASE_URL + 'icon-192.png'
 
 export function canNotify(): boolean {
   return 'Notification' in window && Notification.permission === 'granted'
 }
 
-async function show(title: string, body: string, tag: string): Promise<void> {
+export async function requestPermission(): Promise<boolean> {
+  if (!('Notification' in window)) return false
+  if (Notification.permission === 'granted') return true
+  if (Notification.permission === 'denied') return false
+  return (await Notification.requestPermission()) === 'granted'
+}
+
+export async function notify(title: string, body: string, tag: string): Promise<void> {
   if (!canNotify()) return
   try {
     const reg = await navigator.serviceWorker?.getRegistration()
-    if (reg) {
-      await reg.showNotification(title, { body, tag, icon: ICON, badge: ICON, renotify: true } as NotificationOptions)
-      return
-    }
-    new Notification(title, { body, tag, icon: ICON })
+    if (reg) await reg.showNotification(title, { body, tag, icon: ICON, badge: ICON })
+    else new Notification(title, { body, tag, icon: ICON })
   } catch {
-    /* ambiente sem suporte */
+    /* sem suporte */
   }
 }
 
-const ICON = import.meta.env.BASE_URL + 'icon-192.png'
-
-const fired = new Set<string>()
-
-/** Roda a cada minuto enquanto o app está aberto. */
-export async function tickNotifications(): Promise<void> {
-  if (!canNotify()) return
-  const now = Date.now()
-  const blocks = (await db.blocks.where('day').equals(todayKey()).toArray()).filter(
-    (b) => b.status === 'planejado' && b.kind !== 'sono',
-  )
-  for (const b of blocks) {
-    const start = parseISO(b.start).getTime()
-    const diffMin = Math.round((start - now) / 60000)
-    const key = (n: number) => `${b.id}:${n}`
-    if (diffMin === 10 && !fired.has(key(10))) {
-      fired.add(key(10))
-      await show(`Em 10 min: ${b.title}`, b.firstStep ? `Primeiro passo: ${b.firstStep}` : 'Vai chegando ao fim do que está fazendo.', key(10))
-    } else if (diffMin === 2 && !fired.has(key(2))) {
-      fired.add(key(2))
-      await show(`Em 2 min: ${b.title}`, 'Hora de trocar. Salve onde parou.', key(2))
-    } else if (diffMin === 0 && !fired.has(key(0))) {
-      fired.add(key(0))
-      await show(`Agora: ${b.title}`, b.firstStep ? `Comece por: ${b.firstStep}` : 'Toque em Começar.', key(0))
-    }
+/** Bipe curto via Web Audio (não precisa de arquivo de som). */
+let ctx: AudioContext | null = null
+export function primeAudio(): void {
+  try {
+    ctx ??= new AudioContext()
+    if (ctx.state === 'suspended') void ctx.resume()
+  } catch {
+    /* sem áudio */
   }
 }
 
-export function startNotificationLoop(): () => void {
-  void tickNotifications()
-  const id = window.setInterval(() => void tickNotifications(), 30000)
-  return () => window.clearInterval(id)
+export function chime(): void {
+  try {
+    ctx ??= new AudioContext()
+    const notes = [660, 880, 990]
+    notes.forEach((f, i) => {
+      const o = ctx!.createOscillator()
+      const g = ctx!.createGain()
+      o.type = 'sine'
+      o.frequency.value = f
+      const t = ctx!.currentTime + i * 0.22
+      g.gain.setValueAtTime(0.0001, t)
+      g.gain.exponentialRampToValueAtTime(0.25, t + 0.02)
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35)
+      o.connect(g).connect(ctx!.destination)
+      o.start(t)
+      o.stop(t + 0.4)
+    })
+    navigator.vibrate?.([200, 100, 200])
+  } catch {
+    /* sem áudio */
+  }
 }

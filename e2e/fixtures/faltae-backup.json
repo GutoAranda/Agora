@@ -1,0 +1,17 @@
+{
+  "materias": [
+    {"id":"m1","nome":"Direito Civil I","totalAulas":34,"limitePct":25,"diaSemana":"ter","horario":"18:50","creditos":4,"professor":"Rita de Cássia Curvo Leite","sala":"224"},
+    {"id":"m2","nome":"Direito Romano","totalAulas":17,"limitePct":25,"diaSemana":"ter","horario":"21:35","creditos":2,"professor":"Francisco Caseiro Neto","sala":"224"},
+    {"id":"m3","nome":"Sociologia Geral","totalAulas":17,"limitePct":25,"diaSemana":"seg","horario":"21:35","creditos":2,"professor":null,"sala":null}
+  ],
+  "aulas": [],
+  "faltas": [
+    {"id":"f1","materiaId":"m1","data":"2026-09-15","qtd":2,"recuperada":false,"abonada":false},
+    {"id":"f2","materiaId":"m1","data":"2026-09-22","qtd":1,"recuperada":false,"abonada":true},
+    {"id":"f3","materiaId":"m3","data":"2026-09-28","qtd":1,"recuperada":false,"abonada":false}
+  ],
+  "eventos": [
+    {"id":"e1","tipo":"prova","materiaId":"m1","data":"2026-11-10","titulo":"P2 Civil","descricao":"Cap. 5 a 9","feita":false},
+    {"id":"e2","tipo":"atividade","materiaId":"m2","data":"2026-09-01","titulo":"Seminário Romano","descricao":"","feita":true}
+  ]
+}

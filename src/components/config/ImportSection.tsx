@@ -87,7 +87,7 @@ export function FaltaeImport({ compact }: { compact?: boolean }) {
       accept=".json,application/json"
       onText={async (text) => {
         const r = await importFaltae(text)
-        const msg = `${r.courses} ${r.courses === 1 ? 'disciplina' : 'disciplinas'}, ${r.recurring} ${r.recurring === 1 ? 'horário' : 'horários'}, ${r.absences} ${r.absences === 1 ? 'falta' : 'faltas'}${r.skipped ? ` (${r.skipped} já existiam)` : ''}.`
+        const msg = `${r.courses} ${r.courses === 1 ? 'disciplina' : 'disciplinas'}, ${r.recurring} ${r.recurring === 1 ? 'horário' : 'horários'}, ${r.absences} ${r.absences === 1 ? 'falta' : 'faltas'}${r.deadlines ? `, ${r.deadlines} ${r.deadlines === 1 ? 'prazo' : 'prazos'}` : ''}${r.skipped ? ` (${r.skipped} já existiam)` : ''}.`
         setResult(msg)
         toast(`Faltaê: ${msg}`)
       }}

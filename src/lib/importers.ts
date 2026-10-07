@@ -1,5 +1,6 @@
-import { db, type Absence, type Course, type Recurring, type Task } from '../db/schema'
+import { db, type Absence, type Course, type Deadline, type Recurring, type Task } from '../db/schema'
 import { dayKey, todayKey } from './time'
+import { suggestMilestones } from './schedule'
 
 /* ==========================================================================
    Importadores tolerantes: Faltaê (JSON) e Notion (CSV).
@@ -113,6 +114,138 @@ export interface FaltaeResult {
   recurring: number
   absences: number
   skipped: number
+  deadlines?: number
+}
+
+/* ---------- Backup real do Faltaê (controle-faltas) ----------
+   Formato: { materias:[{id, nome, totalAulas, limitePct, diaSemana:'seg'..'sáb'|null,
+              horario:'18:50'|null, creditos, professor, sala}],
+              aulas:[...], faltas:[{id, materiaId, data, qtd, recuperada, abonada}],
+              eventos:[{id, tipo:'prova'|'atividade', materiaId, data, titulo, descricao, feita}] }
+   A matéria guarda só a hora de início; o fim é estimado pelo padrão da PUC
+   (2h30 no primeiro horário da noite, 1h40 no segundo) e pode ser ajustado em Áreas. */
+
+function isFaltaeBackup(x: unknown): x is { materias: J[]; faltas?: unknown; eventos?: unknown } {
+  return isObj(x) && Array.isArray((x as J).materias) && ((x as J).materias as unknown[]).every(isObj)
+}
+
+function faltaeEndTime(start: string, raw: string | undefined): string {
+  // "18:50-21:20", "18:50 às 21:20", "18:50 - 21:20"
+  const m = raw?.match(/(\d{1,2}[:h]\d{2})\s*(?:-|–|às|as|a)\s*(\d{1,2}[:h]\d{2})/i)
+  if (m) {
+    const e = parseTime(m[2])
+    if (e) return e
+  }
+  const [h, mi] = start.split(':').map(Number)
+  const startMin = h * 60 + mi
+  const dur = startMin >= 21 * 60 ? 100 : 150
+  const endMin = (startMin + dur) % (24 * 60)
+  return `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`
+}
+
+async function importFaltaeBackup(data: { materias: J[]; faltas?: unknown; eventos?: unknown }): Promise<FaltaeResult> {
+  const existing = await db.courses.toArray()
+  const names = new Set(existing.map((c) => normName(c.name)))
+  const res: FaltaeResult = { courses: 0, recurring: 0, absences: 0, skipped: 0, deadlines: 0 }
+  const idMap = new Map<string, { courseId: string; startTime?: string }>()
+
+  for (const m of data.materias) {
+    const name = str(m.nome)
+    if (!name) continue
+    const faltaeId = str(m.id) ?? name
+    if (names.has(normName(name))) {
+      // Já existe: ainda mapeia o id para importar faltas/eventos sem duplicar a disciplina.
+      const found = existing.find((c) => normName(c.name) === normName(name))
+      if (found?.id) idMap.set(faltaeId, { courseId: found.id })
+      res.skipped++
+      continue
+    }
+    names.add(normName(name))
+    const totalAulas = num(m.totalAulas)
+    const limitePct = num(m.limitePct) ?? 25
+    const absenceLimit = totalAulas ? Math.max(1, Math.floor((totalAulas * limitePct) / 100)) : 7
+    const creditos = num(m.creditos)
+    const course: Course = {
+      name,
+      professor: str(m.professor),
+      room: str(m.sala),
+      absenceLimit,
+      notes: [totalAulas ? `${totalAulas} aulas no semestre` : null, `limite ${limitePct}%`, creditos ? `${creditos} créditos` : null, 'Importado do Faltaê']
+        .filter(Boolean)
+        .join(' · '),
+    }
+    const courseId = (await db.courses.add(course)) as string
+    res.courses++
+
+    const wd = parseWeekday(m.diaSemana)
+    const rawHorario = str(m.horario)
+    const start = parseTime(rawHorario?.split(/[-–]|às/)[0])
+    if (wd !== undefined && start) {
+      const rule: Recurring = {
+        title: name,
+        area: 'faculdade',
+        kind: 'fixo',
+        weekdays: [wd],
+        startTime: start,
+        endTime: faltaeEndTime(start, rawHorario),
+        location: str(m.sala),
+        travelMin: 0,
+        courseId,
+        active: true,
+      }
+      await db.recurring.add(rule)
+      res.recurring++
+    }
+    idMap.set(faltaeId, { courseId, startTime: start })
+  }
+
+  // Faltas: uma linha por aula perdida (qtd), ignorando abonadas (não contam no limite).
+  const rows: Absence[] = []
+  for (const f of toArray(data.faltas)) {
+    if (!isObj(f)) continue
+    const ref = idMap.get(str(f.materiaId) ?? '')
+    const d = parseLooseDate(f.data)
+    if (!ref || !d || f.abonada === true) continue
+    const qtd = Math.max(1, Math.min(10, num(f.qtd) ?? 1))
+    for (let i = 0; i < qtd; i++) rows.push({ courseId: ref.courseId, date: dayKey(d), note: qtd > 1 ? `${qtd} aulas no dia (Faltaê)` : undefined })
+  }
+  if (rows.length) {
+    await db.absences.bulkAdd(rows)
+    res.absences = rows.length
+  }
+
+  // Eventos: provas e atividades viram prazos (com marcos sugeridos quando ainda estão no futuro).
+  const openTitles = new Set((await db.deadlines.toArray()).map((d) => `${normName(d.title)}|${d.dueAt.slice(0, 10)}`))
+  for (const e of toArray(data.eventos)) {
+    if (!isObj(e)) continue
+    const titulo = str(e.titulo)
+    const d = parseLooseDate(e.data)
+    if (!titulo || !d) continue
+    const ref = idMap.get(str(e.materiaId) ?? '')
+    const due = new Date(d)
+    const [h, mi] = (ref?.startTime ?? '23:59').split(':').map(Number)
+    due.setHours(h, mi, 0, 0)
+    const key = `${normName(titulo)}|${dayKey(due)}`
+    if (openTitles.has(key)) continue
+    openTitles.add(key)
+    const tipo = str(e.tipo)
+    const type: Deadline['type'] = tipo === 'prova' ? 'prova' : tipo === 'trabalho' ? 'trabalho' : 'entrega'
+    const estimateMin = type === 'prova' ? 240 : type === 'trabalho' ? 180 : 60
+    const done = e.feita === true || due.getTime() < Date.now()
+    const base = { title: titulo, type, dueAt: due.toISOString(), estimateMin }
+    const deadline: Deadline = {
+      ...base,
+      area: 'faculdade',
+      courseId: ref?.courseId,
+      milestones: done ? [] : suggestMilestones(base),
+      done,
+      notes: str(e.descricao),
+      createdAt: new Date().toISOString(),
+    }
+    await db.deadlines.add(deadline)
+    res.deadlines = (res.deadlines ?? 0) + 1
+  }
+  return res
 }
 
 function extractCourses(parsed: unknown, depth = 0): J[] {
@@ -142,6 +275,7 @@ export async function importFaltae(text: string): Promise<FaltaeResult> {
   } catch {
     throw new Error('Esse arquivo não é um JSON válido.')
   }
+  if (isFaltaeBackup(parsed)) return importFaltaeBackup(parsed)
   const list = extractCourses(parsed)
   if (!list.length) throw new Error('Não encontrei disciplinas nesse arquivo.')
 

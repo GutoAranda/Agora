@@ -25,14 +25,16 @@ async function show(title: string, body: string, tag: string): Promise<void> {
   try {
     const reg = await navigator.serviceWorker?.getRegistration()
     if (reg) {
-      await reg.showNotification(title, { body, tag, icon: '/icon-192.png', badge: '/icon-192.png', renotify: true } as NotificationOptions)
+      await reg.showNotification(title, { body, tag, icon: ICON, badge: ICON, renotify: true } as NotificationOptions)
       return
     }
-    new Notification(title, { body, tag, icon: '/icon-192.png' })
+    new Notification(title, { body, tag, icon: ICON })
   } catch {
     /* ambiente sem suporte */
   }
 }
+
+const ICON = import.meta.env.BASE_URL + 'icon-192.png'
 
 const fired = new Set<string>()
 

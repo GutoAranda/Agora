@@ -13,6 +13,10 @@ npm run build      # gera dist/ (PWA instalável)
 npm run preview    # serve o build
 ```
 
+## Endereço publicado
+
+https://gutoaranda.github.io/Agora/ (publicado automaticamente a cada push na branch main, via GitHub Actions).
+
 ## Instalar no celular e no PC
 
 - **iPhone:** abra o endereço no Safari → Compartilhar → Adicionar à Tela de Início.

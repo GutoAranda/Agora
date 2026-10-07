@@ -2,8 +2,11 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const base = process.env.VITE_BASE || '/'
+
 // https://vite.dev/config/
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -14,7 +17,8 @@ export default defineConfig({
         short_name: 'Agora',
         description: 'Faculdade, trabalho e vida em uma linha do tempo.',
         lang: 'pt-BR',
-        start_url: '/',
+        start_url: base,
+        scope: base,
         display: 'standalone',
         background_color: '#F5F6F9',
         theme_color: '#E0691F',
@@ -25,7 +29,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        navigateFallback: '/index.html',
+        navigateFallback: base + 'index.html',
       },
     }),
   ],

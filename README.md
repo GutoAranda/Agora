@@ -36,6 +36,16 @@ Veja `supabase/README.md`. Sem configurar, o app roda em modo local.
 - **Dia difícil:** mostra só os compromissos e uma tarefa.
 - **Fechar o dia:** o que ficou vai para amanhã, sem culpa.
 
+## Pomodoro com o app fechado (iPhone)
+
+O fim do foco chega como notificação mesmo com o celular bloqueado. O app agenda
+o aviso no Supabase ao começar e cancela ao pausar; a função `agora-push`,
+chamada a cada minuto pelo pg_cron, entrega no segundo exato via Web Push.
+Configuração única em Ajustes → Avisos com o app fechado (o app mostra os
+passos e gera as chaves no próprio aparelho). Arquivos:
+`supabase/migrations/0002_push.sql`, `0003_push_cron.sql` e
+`supabase/functions/agora-push/index.ts`.
+
 Ferramentas novas (como o pomodoro) moram em `src/tools/<nome>/`.
 
 ## Estrutura

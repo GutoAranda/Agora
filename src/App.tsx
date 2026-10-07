@@ -13,6 +13,7 @@ import AgoraPage from './pages/Agora'
 import HojePage from './pages/Hoje'
 import AjustesPage from './pages/Ajustes'
 import ContaPage from './pages/Conta'
+import AvisosPage from './pages/Avisos'
 import FocoPage from './tools/pomodoro/FocoPage'
 
 const fired = new Set<string>()
@@ -76,6 +77,7 @@ function Shell() {
           <Route path="/foco" element={<FocoPage />} />
           <Route path="/ajustes" element={<AjustesPage />} />
           <Route path="/conta" element={<ContaPage />} />
+          <Route path="/ajustes/avisos" element={<AvisosPage />} />
           <Route path="*" element={<AgoraPage />} />
         </Routes>
       </main>

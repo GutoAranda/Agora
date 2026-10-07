@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Cloud } from 'lucide-react'
+import { BellRing, ChevronLeft, ChevronRight, Cloud } from 'lucide-react'
 import { db, exportAll, importAll, updateSettings } from '../db/schema'
 import { useUI } from '../store/ui'
 import { canNotify, requestPermission } from '../lib/notify'
@@ -74,11 +74,16 @@ export default function AjustesPage() {
       <section className="grid gap-2">
         <h2 className="font-bold">Avisos</h2>
         {notif ? (
-          <p className="text-sm text-muted">Avisos ligados.</p>
+          <p className="text-sm text-muted">Avisos ligados com o app aberto.</p>
         ) : (
           <Button onClick={async () => setNotif(await requestPermission())}>Ligar avisos</Button>
         )}
-        <p className="text-xs text-muted">No iPhone, os avisos só funcionam com o app adicionado à Tela de Início e aberto.</p>
+        <Link to="/ajustes/avisos" className="flex items-center justify-between rounded-2xl border border-line bg-surface px-4 min-h-12 font-semibold">
+          <span className="flex items-center gap-2">
+            <BellRing size={18} className="text-muted" /> Avisos com o app fechado
+          </span>
+          <ChevronRight size={18} className="text-muted" />
+        </Link>
       </section>
 
       <Link to="/conta" className="flex items-center justify-between rounded-2xl border border-line bg-surface px-4 min-h-12 font-semibold">

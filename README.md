@@ -1,32 +1,57 @@
-# React + TypeScript + Vite
+# Agora
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Faculdade, trabalho e vida em uma linha do tempo. App pessoal de rotina para
+quem tem TDAH: mostra o tempo passando, transforma cada tarefa em um gatilho
+concreto, reduz tudo ao primeiro passo e nunca cobra.
 
-Currently, two official plugins are available:
+## Rodar
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # gera dist/ (PWA instalável)
+npm run preview    # serve o build
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Instalar no celular e no PC
+
+- **iPhone:** abra o endereço no Safari → Compartilhar → Adicionar à Tela de Início.
+  As notificações só funcionam depois disso.
+- **PC:** no Chrome/Edge, ícone de instalar na barra de endereço.
+
+## Sincronização (Supabase)
+
+Veja `supabase/README.md`. Sem configurar, o app roda em modo local.
+
+## Estrutura
+
+```
+src/
+  db/schema.ts        modelo de dados (Dexie / IndexedDB) e sync hooks
+  lib/time.ts         utilitários de data e hora
+  lib/materialize.ts  regras recorrentes, rotinas e sono → blocos por dia
+  lib/schedule.ts     espaços livres, encaixe automático, marcos, dia mínimo
+  lib/calibration.ts  quanto cada coisa leva de verdade
+  lib/score.ts        placar semanal sem culpa
+  lib/notify.ts       notificações com escalada 10 / 2 / 0 min
+  lib/sync.ts         sincronização local-first com Supabase
+  lib/ics.ts          importação de calendários (.ics)
+  lib/importers.ts    importação do Faltaê (JSON) e Notion (CSV)
+  pages/              Agora, Semana, Entrada, Áreas (Faculdade, Trabalho, Vida), Revisão, Config, Conta
+  components/         UI básica, ações do bloco, captura rápida, status de sync
+supabase/
+  migrations/0001_init.sql
+```
+
+## Princípios (da pesquisa)
+
+1. Uma tela, uma próxima ação.
+2. Tempo visível e físico.
+3. Calibração automática de duração e folgas.
+4. Toda tarefa vira plano "se-então" (gatilho obrigatório).
+5. Começar é a meta: micro primeiro passo.
+6. Recompensa imediata, leve e variável.
+7. Zero culpa: nada fica vermelho, nenhuma sequência zera.
+8. Dia mínimo e reinício suave.
+9. Noite e sono como âncora.
+10. Configuração uma vez; ajustes no domingo.

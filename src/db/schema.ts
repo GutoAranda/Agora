@@ -264,7 +264,41 @@ export const DEFAULT_SETTINGS: Settings = {
   createdAt: new Date().toISOString(),
 }
 
+/** Lápide: registro apagado localmente, ainda não enviado ao servidor. */
+export interface Tombstone {
+  id: string
+  tbl: string
+  at: string // ISO
+}
+
+export interface SyncMeta {
+  key: 'meta'
+  lastPush: string
+  lastPull: string
+}
+
+/** Tabelas que sincronizam com a nuvem (tudo exceto metadados locais). */
+export const SYNCED_TABLES = [
+  'settings',
+  'blocks',
+  'tasks',
+  'recurring',
+  'courses',
+  'absences',
+  'deadlines',
+  'readings',
+  'routines',
+  'habits',
+  'habitLogs',
+  'reminders',
+  'reviews',
+  'workCloses',
+  'parked',
+] as const
+
 class AgoraDB extends Dexie {
+  tombstones!: EntityTable<Tombstone, 'id'>
+  syncMeta!: EntityTable<SyncMeta, 'key'>
   settings!: EntityTable<Settings, 'id'>
   blocks!: EntityTable<Block, 'id'>
   tasks!: EntityTable<Task, 'id'>
@@ -299,6 +333,8 @@ class AgoraDB extends Dexie {
       reviews: '++id, date, type',
       workCloses: '++id, date',
       parked: '++id, area, createdAt',
+      tombstones: 'id, tbl',
+      syncMeta: 'key',
     })
   }
 }
